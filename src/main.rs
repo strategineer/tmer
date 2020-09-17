@@ -35,14 +35,13 @@ fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
 }
 
 fn run_app() -> Result<(), ()> {
-    // TODO(strategineer): document arguments
     let matches = App::new("Tmer")
         .version("1.0")
         .author("strategineer <me@strategineer.com>")
         .about("Make teams")
         .arg(
             Arg::with_name("file")
-                .help("...")
+                .help("Filepath containing one player name per line.")
                 .short("f")
                 .long("file")
                 .value_name("FILEPATH")
@@ -51,7 +50,7 @@ fn run_app() -> Result<(), ()> {
         )
         .arg(
             Arg::with_name("n_players")
-                .help("...")
+                .help("Number of players. Use this if numbering each player is good enough.")
                 .short("n")
                 .long("count")
                 .value_name("NUMBER_OF_PLAYERS")
@@ -60,7 +59,7 @@ fn run_app() -> Result<(), ()> {
         )
         .arg(
             Arg::with_name("n_teams")
-                .help("...")
+                .help("Number of teams to make.")
                 .short("t")
                 .long("teams")
                 .conflicts_with("n_size")
@@ -69,7 +68,7 @@ fn run_app() -> Result<(), ()> {
         )
         .arg(
             Arg::with_name("n_size")
-                .help("...")
+                .help("Number of players in each team.")
                 .short("s")
                 .long("size")
                 .conflicts_with("n_teams")
@@ -78,7 +77,7 @@ fn run_app() -> Result<(), ()> {
         )
         .arg(
             Arg::with_name("n_rounds")
-                .help("...")
+                .help("Number of rounds to generate.")
                 .short("r")
                 .long("rounds")
                 .value_name("NUMBER_OF_ROUNDS")
@@ -86,7 +85,7 @@ fn run_app() -> Result<(), ()> {
         )
         .arg(
             Arg::with_name("debug")
-                .help("print debug information verbosely")
+                .help("Print debug information verbosely.")
                 .short("d")
                 .long("debug"),
         )
