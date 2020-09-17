@@ -1,84 +1,13 @@
 extern crate clap;
 use clap::{App, Arg};
-use log::{info, Level};
+use log::{info};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::fmt;
-use std::fs::File;
-use std::io::{self, BufRead};
-use std::path::Path;
 
-// TODO(strategineer): cleanup classes (own files?)
-
-#[derive(Clone, Debug)]
-struct Team {
-    members: Vec<String>,
-}
-
-impl Team {
-    pub fn new() -> Team {
-        Team {
-            members: Vec::new(),
-        }
-    }
-    pub fn add_member(&mut self, m: String) {
-        self.members.push(m);
-    }
-    pub fn len(&self) -> usize {
-        return self.members.len();
-    }
-}
-
-impl fmt::Display for Team {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.members.join(","))
-    }
-}
-
-#[derive(Clone, Debug)]
-struct Round {
-    teams: Vec<Team>,
-}
-
-impl Round {
-    pub fn new() -> Round {
-        Round { teams: Vec::new() }
-    }
-    pub fn add_team(&mut self, t: Team) {
-        self.teams.push(t);
-    }
-    pub fn len(&self) -> usize {
-        return self.teams.len();
-    }
-}
-
-impl fmt::Display for Round {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.teams.len() {
-            0 => write!(f, ""),
-            _ => write!(
-                f,
-                "{}",
-                self.teams
-                    .clone()
-                    .into_iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<String>>()
-                    .join("\n")
-            ),
-        }
-    }
-}
-
-// The output is wrapped in a Result to allow matching on errors
-// Returns an Iterator to the Reader of the lines of the file.
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
+mod core;
+use self::core::{Team, Round};
+mod argparse;
+use self::argparse::{TmerArgs};
 
 fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[String]) -> Round {
     let mut round: Round = Round::new();
@@ -170,102 +99,30 @@ fn run_app() -> Result<(), ()> {
     } else {
         //console_log::init_with_level(Level::Debug);
     }
-    // TODO(strategineer): allow the generation of multiple rounds of teams ensuring that the
-    // leftover people are picked during subsequent rounds
-    let n_rounds_str = matches.value_of("n_rounds");
-    let n_rounds: usize;
-    match n_rounds_str {
-        None => {
-            n_rounds = 1;
-        }
-        Some(s) => match s.parse::<usize>() {
-            Ok(n) => {
-                n_rounds = n;
-            }
-            Err(err) => panic!("Size parameter must be a number: {:?}", err),
-        },
-    }
+    // TODO(strategineer): with multiple rounds, ensure that the leftover people
+    // are picked during subsequent rounds
 
-    let n_players_str = matches.value_of("n_players");
-    let n_players: usize;
-    let mut ids: Vec<String>;
-    match n_players_str {
-        None => {
-            let file_str = matches.value_of("file");
-            match file_str {
-                None => panic!("Either the -f or -c parameters must be set"),
-                Some(s) => {
-                    if !Path::new(s).exists() {
-                        panic!("File parameter must point to a valid file: {:?}")
-                    }
-                    ids = Vec::new();
-                    if let Ok(lines) = read_lines(s) {
-                        for line in lines {
-                            if let Ok(l) = line {
-                                let p: String = l.split_whitespace().collect();
-                                if p.len() > 0 {
-                                    ids.push(p);
-                                }
-                            }
-                        }
-                    }
-                    n_players = ids.len();
-                    if n_players == 0 {
-                        panic!("File must contain more than one line.");
-                    }
-                }
-            }
-        }
-        Some(s) => match s.parse::<usize>() {
-            Ok(n) => {
-                n_players = n;
-                ids = (1..n_players + 1).map(|x| x.to_string()).collect();
-            }
-            Err(err) => panic!("n_players parameter must be a number: {:?}", err),
-        },
-    }
-    let n_teams: usize;
-    let team_size: usize;
-    let n_teams_str = matches.value_of("n_teams");
-    match n_teams_str {
-        None => {
-            let team_size_str = matches.value_of("n_size");
-            match team_size_str {
-                None => panic!("Either the -t or -s parameters must be set"),
-                Some(s) => match s.parse::<usize>() {
-                    Ok(n) => {
-                        n_teams = n_players / n;
-                        team_size = n;
-                    }
-                    Err(err) => panic!("Size parameter must be a number: {:?}", err),
-                },
-            }
-        }
-        Some(s) => match s.parse::<usize>() {
-            Ok(n) => {
-                n_teams = n;
-                team_size = n_players / n;
-            }
-            Err(err) => panic!("Team parameter must be a number: {:?}", err),
-        },
-    }
+    let args: TmerArgs = TmerArgs::new(matches);
 
-    info!("n_players: {}", n_players);
-    info!("n_teams: {}", n_teams);
-    info!("team_size: {}", team_size);
-    info!("ids: {:?}", ids);
+    info!("n_rounds: {}", args.n_rounds);
+    info!("n_players: {}", args.n_players);
+    info!("n_teams: {}", args.n_teams);
+    info!("team_size: {}", args.team_size);
+    info!("ids: {:?}", args.elements);
 
-    if n_players < team_size {
+    let mut ids: Vec<String> = args.elements.clone();
+
+    if args.n_players < args.team_size {
         panic!("Team size must be smaller than the number of players")
     }
 
-    for _ in 0..n_rounds {
+    for _ in 0..args.n_rounds {
         ids.shuffle(&mut thread_rng());
         info!("shuffled: {:?}", ids);
         // TODO(strategineer): implement an algo that computes the similarity between teams and
         // rounds in order to allow for the computation of "more" different rounds to avoid teams
         // being too similar round after round
-        let round = generate_teams(n_players, n_teams, team_size, &ids);
+        let round = generate_teams(args.n_players, args.n_teams, args.team_size, &ids);
         println!("{}", round);
     }
 
