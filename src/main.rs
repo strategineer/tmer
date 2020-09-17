@@ -9,6 +9,8 @@ use self::core::{Team, Round};
 mod argparse;
 use self::argparse::{TmerArgs};
 
+const ATTEMPT_LIMIT: usize = 100;
+
 fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[String]) -> Round {
     let mut round: Round = Round::new();
     let mut start_index: usize;
@@ -19,7 +21,7 @@ fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
         end_index = t * team_size + team_size;
         info!("{}:{}", start_index, end_index);
         for i in start_index..end_index {
-            team.add_member(ids.get(i).unwrap().to_string());
+            team.add_player(ids.get(i).unwrap().to_string());
         }
         round.add_team(team);
     }
@@ -27,7 +29,7 @@ fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
         //TODO(strategineer): identify as the "leftover" team?
         let mut team: Team = Team::new();
         for i in end_index..n_players {
-            team.add_member(ids.get(i).unwrap().to_string());
+            team.add_player(ids.get(i).unwrap().to_string());
         }
         round.add_team(team);
     }
@@ -115,14 +117,50 @@ fn run_app() -> Result<(), ()> {
         panic!("Team size must be smaller than the number of players")
     }
 
+    let mut previous_round: Option<Round> = None;
     for _ in 0..args.n_rounds {
-        ids.shuffle(&mut thread_rng());
-        info!("shuffled: {:?}", ids);
-        // TODO(strategineer): implement an algo that computes the similarity between teams and
-        // rounds in order to allow for the computation of "more" different rounds to avoid teams
-        // being too similar round after round
-        let round = generate_teams(args.n_players, args.n_teams, args.team_size, &ids);
-        println!("{}", round);
+        let mut best_similarity = f32::MAX;
+        let mut attempts = 0;
+        let mut best_round_yet: Option<Round> = None;
+        loop {
+            ids.shuffle(&mut thread_rng());
+            info!("shuffled: {:?}", ids);
+            // TODO(strategineer): implement different round generation strategies (simple, then
+            // similarity-using one) and allow user to select the strategy through the CLI
+            let round = generate_teams(args.n_players, args.n_teams, args.team_size, &ids);
+            match &previous_round {
+                None => {
+                    best_round_yet = Some(round);
+                    break;
+                }
+                Some(r) => {
+                    let current_similarity = r.similarity(&round);
+                    match best_round_yet {
+                        None => {
+                            best_similarity = current_similarity;
+                            best_round_yet = Some(round);
+                        },
+                        Some(_) => {
+                            if current_similarity < best_similarity {
+                                best_similarity = current_similarity;
+                                best_round_yet = Some(round);
+                            }
+                        }
+
+                    }
+                }
+            }
+            attempts += 1;
+            if attempts > ATTEMPT_LIMIT || best_similarity > 0.999 {
+                break;
+            }
+        }
+        let best_round = best_round_yet.unwrap();
+        // TODO(strategineer): write tests for this similarity code to start and then add more
+        // tests
+        info!("similarity: {}", best_similarity);
+        println!("{}", best_round);
+        previous_round = Some(best_round);
     }
 
     Ok(())
