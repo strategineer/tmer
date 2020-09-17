@@ -15,44 +15,70 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
+fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: Vec<String>) {
+    let mut start_index: usize;
+    let mut end_index: usize = 0;
+    for t in 0..n_teams {
+        start_index = t * team_size;
+        end_index = t * team_size + team_size;
+        info!("{}:{}", start_index, end_index);
+        for i in start_index..end_index {
+            print!("{} ", ids.get(i).unwrap().to_string());
+        }
+        println!()
+    }
+    if end_index <= n_players {
+        for i in end_index..n_players {
+            print!("{} ", ids.get(i).unwrap().to_string());
+        }
+    }
+}
+
+
 fn run_app() -> Result<(), ()> {
-     let matches = App::new("Tmer")
-                      .version("1.0")
-                      .author("strategineer <me@strategineer.com>")
-                      .about("Make teams")
-                      .arg(Arg::with_name("file")
-                           .help("...")
-                           .short("f")
-                           .long("file")
-                           .value_name("FILEPATH")
-                           .conflicts_with("n_players")
-                           .takes_value(true))
-                      .arg(Arg::with_name("n_players")
-                           .help("...")
-                           .short("c")
-                           .long("count")
-                           .value_name("NUMBER_OF_PLAYERS")
-                           .conflicts_with("file")
-                           .takes_value(true))
-                      .arg(Arg::with_name("n_teams")
-                           .help("...")
-                           .short("t")
-                           .long("teams")
-                           .conflicts_with("n_size")
-                           .value_name("NUMBER_OF_TEAMS")
-                           .takes_value(true))
-                      .arg(Arg::with_name("n_size")
-                           .help("...")
-                           .short("s")
-                           .long("size")
-                           .conflicts_with("n_teams")
-                           .value_name("TEAM_SIZE")
-                           .takes_value(true))
-                      .arg(Arg::with_name("debug")
-                           .help("print debug information verbosely")
-                           .short("d")
-                           .long("debug"))
-                      .get_matches();
+    let matches = App::new("Tmer")
+        .version("1.0")
+        .author("strategineer <me@strategineer.com>")
+        .about("Make teams")
+        .arg(Arg::with_name("file")
+            .help("...")
+            .short("f")
+            .long("file")
+            .value_name("FILEPATH")
+            .conflicts_with("n_players")
+            .takes_value(true))
+        .arg(Arg::with_name("n_players")
+            .help("...")
+            .short("n")
+            .long("count")
+            .value_name("NUMBER_OF_PLAYERS")
+            .conflicts_with("file")
+            .takes_value(true))
+        .arg(Arg::with_name("n_teams")
+            .help("...")
+            .short("t")
+            .long("teams")
+            .conflicts_with("n_size")
+            .value_name("NUMBER_OF_TEAMS")
+            .takes_value(true))
+        .arg(Arg::with_name("n_size")
+            .help("...")
+            .short("s")
+            .long("size")
+            .conflicts_with("n_teams")
+            .value_name("TEAM_SIZE")
+            .takes_value(true))
+        .arg(Arg::with_name("n_rounds")
+            .help("...")
+            .short("r")
+            .long("rounds")
+            .value_name("NUMBER_OF_ROUNDS")
+            .takes_value(true))
+        .arg(Arg::with_name("debug")
+            .help("print debug information verbosely")
+            .short("d")
+            .long("debug"))
+        .get_matches();
     let is_debug = matches.is_present("debug");
 
     // TODO(strategineer): fix logging
@@ -63,7 +89,21 @@ fn run_app() -> Result<(), ()> {
     }
     // TODO(strategineer): allow the generation of multiple rounds of teams ensuring that the
     // leftover people are picked during subsequent rounds
-    
+    let n_rounds_str = matches.value_of("n_rounds");
+    let n_rounds: usize;
+    match n_rounds_str {
+        None => panic!("Either the -t or -s parameters must be set"),
+        Some(s) => {
+            match s.parse::<usize>() {
+                Ok(n) => {
+                    n_teams = n_players / n;
+                    team_size = n;
+                },
+                Err(err) => panic!("Size parameter must be a number: {:?}", err)
+            }
+        }
+    }
+
     let n_players_str = matches.value_of("n_players");
     let n_players: usize;
     let mut ids : Vec<String>;
@@ -144,23 +184,9 @@ fn run_app() -> Result<(), ()> {
     if n_players < team_size {
         panic!("Team size must be smaller than the number of players")
     }
-    
-    let mut start_index: usize;
-    let mut end_index: usize = 0;
-    for t in 0..n_teams {
-        start_index = t * team_size;
-        end_index = t * team_size + team_size;
-        info!("{}:{}", start_index, end_index);
-        for i in start_index..end_index {
-            print!("{} ", ids.get(i).unwrap().to_string());
-        }
-        println!()
-    }
-    if end_index <= n_players {
-        for i in end_index..n_players {
-            print!("{} ", ids.get(i).unwrap().to_string());
-        }
-    }
+
+    generate_teams(n_players, n_teams, team_size, ids);
+
     Ok(())
 }
 
