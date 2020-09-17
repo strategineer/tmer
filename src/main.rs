@@ -8,6 +8,8 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
+// TODO(strategineer): cleanup classes (own files?)
+
 #[derive(Clone, Debug)]
 struct Team {
     members: Vec<String>,
@@ -21,6 +23,9 @@ impl Team {
     }
     pub fn add_member(&mut self, m: String) {
         self.members.push(m);
+    }
+    pub fn len(&self) -> usize {
+        return self.members.len();
     }
 }
 
@@ -41,6 +46,9 @@ impl Round {
     }
     pub fn add_team(&mut self, t: Team) {
         self.teams.push(t);
+    }
+    pub fn len(&self) -> usize {
+        return self.teams.len();
     }
 }
 
@@ -87,6 +95,7 @@ fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
         round.add_team(team);
     }
     if end_index <= n_players {
+        //TODO(strategineer): identify as the "leftover" team?
         let mut team: Team = Team::new();
         for i in end_index..n_players {
             team.add_member(ids.get(i).unwrap().to_string());
@@ -97,6 +106,7 @@ fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
 }
 
 fn run_app() -> Result<(), ()> {
+    // TODO(strategineer): document arguments
     let matches = App::new("Tmer")
         .version("1.0")
         .author("strategineer <me@strategineer.com>")
@@ -252,6 +262,9 @@ fn run_app() -> Result<(), ()> {
     for _ in 0..n_rounds {
         ids.shuffle(&mut thread_rng());
         info!("shuffled: {:?}", ids);
+        // TODO(strategineer): implement an algo that computes the similarity between teams and
+        // rounds in order to allow for the computation of "more" different rounds to avoid teams
+        // being too similar round after round
         let round = generate_teams(n_players, n_teams, team_size, &ids);
         println!("{}", round);
     }
