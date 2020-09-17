@@ -14,55 +14,51 @@ pub struct TmerArgs {
 
 impl TmerArgs {
     pub fn new(matches: ArgMatches) -> TmerArgs {
-        let n_rounds_str = matches.value_of("n_rounds");
         let n_rounds: usize;
-        match n_rounds_str {
-            None => n_rounds = 1,
-            Some(s) => n_rounds = s.parse::<usize>().expect("Size parameter must be a number")
+        match matches.value_of("n_rounds") {
+            Some(s) => n_rounds = s.parse::<usize>().expect("Size parameter must be a number"),
+            None => n_rounds = 1
         }
 
-        let n_players_str = matches.value_of("n_players");
         let n_players: usize;
-        let mut ids: Vec<String>;
-        match n_players_str {
+        let mut elements: Vec<String>;
+        match matches.value_of("n_players") {
+            Some(s) => {
+                n_players = s.parse::<usize>().expect("n_players parameter must be a number");
+                elements = (1..n_players + 1).map(|x| x.to_string()).collect();
+            }
             None => {
-                let file_str = matches.value_of("file");
-                match file_str {
+                match matches.value_of("file") {
                     None => panic!("Either the -f or -c parameters must be set"),
                     Some(s) => {
                         if !Path::new(s).exists() {
                             panic!("File parameter must point to a valid file: {:?}")
                         }
-                        ids = Vec::new();
+                        // TODO(strategineer): panic if we find any duplicate elements
+                        elements = Vec::new();
                         if let Ok(lines) = read_lines(s) {
                             for line in lines {
                                 if let Ok(l) = line {
                                     let p: String = l.split_whitespace().collect();
                                     if p.len() > 0 {
-                                        ids.push(p);
+                                        elements.push(p);
                                     }
                                 }
                             }
                         }
-                        n_players = ids.len();
+                        n_players = elements.len();
                         if n_players == 0 {
                             panic!("File must contain more than one line.");
                         }
                     }
                 }
             }
-            Some(s) => {
-                n_players = s.parse::<usize>().expect("n_players parameter must be a number");
-                ids = (1..n_players + 1).map(|x| x.to_string()).collect();
-            }
         }
         let n_teams: usize;
         let team_size: usize;
-        let n_teams_str = matches.value_of("n_teams");
-        match n_teams_str {
+        match matches.value_of("n_teams") {
             None => {
-                let team_size_str = matches.value_of("n_size");
-                match team_size_str {
+                match matches.value_of("n_size") {
                     None => panic!("Either the -t or -s parameters must be set"),
                     Some(s) => {
                         team_size = s.parse::<usize>().expect("Size parameter must be a number");
@@ -80,7 +76,7 @@ impl TmerArgs {
             n_players: n_players,
             n_teams: n_teams,
             team_size: team_size,
-            elements: ids,
+            elements: elements,
         }
     }
 }
