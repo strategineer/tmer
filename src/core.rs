@@ -1,7 +1,7 @@
-use std::collections::HashSet;
 use std::fmt;
+use std::cmp::Ordering;
 
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+#[derive(Hash, Eq, PartialEq, Ord, PartialOrd, Clone, Debug)]
 struct Player {
     name: String,
 }
@@ -14,30 +14,33 @@ impl fmt::Display for Player {
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Team {
-    players: HashSet<Player>,
+    players: Vec<Player>,
 }
 
 impl Team {
     pub fn new() -> Team {
         Team {
-            players: HashSet::new(),
+            players: Vec::new(),
         }
     }
     pub fn from_slice(ls: &[&str]) -> Team {
-        Team {
-            players: ls
+        let mut players: Vec<Player> = ls
                 .iter()
                 .cloned()
                 .map(|p| Player {
                     name: p.to_string(),
                 })
-                .collect(),
+                .collect();
+        players.sort();
+        Team {
+            players: players
         }
     }
     pub fn add_player(&mut self, m: String) {
-        self.players.insert(Player { name: m });
+        self.players.push(Player { name: m });
+        self.players.sort();
     }
-    pub fn similarity(&self, other: &Team) -> f32 {
+    pub fn similarity(&self, other: &Self) -> f32 {
         /*
          * Returns a value from 0.0 to 1.0 where 1.0 means both teams are the
          * same and 0.0 that they have nothing in common.
@@ -63,6 +66,21 @@ impl Team {
             }
         }
         return 1.0 - (f32::from(a_diff + b_diff) / f32::from(n));
+    }
+}
+
+impl Ord for Team {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.players.len() < other.players.len() {
+            return Ordering::Greater;
+        }
+        self.players.cmp(&other.players)
+    }
+}
+
+impl PartialOrd for Team {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -94,14 +112,17 @@ impl Round {
         Round { teams: Vec::new() }
     }
     pub fn from_slice(ls: &[Team]) -> Round {
+        let mut teams: Vec<Team> = ls.iter().cloned().collect();
+        teams.sort();
         Round {
-            teams: ls.iter().cloned().collect(),
+            teams: teams
         }
     }
     pub fn add_team(&mut self, t: Team) {
         self.teams.push(t);
+        self.teams.sort();
     }
-    pub fn similarity(&self, other: &Round) -> f32 {
+    pub fn similarity(&self, other: &Self) -> f32 {
         /*
          * Returns a value from 0.0 to 1.0 where 1.0 means both rounds are the
          * same and 0.0 that they have nothing in common.
@@ -181,6 +202,19 @@ mod tests {
         let r1 = Round::from_slice(&[
             Team::from_slice(&["A", "B", "C"]),
             Team::from_slice(&["1", "2", "3"]),
+        ]);
+        let r2 = Round::from_slice(&[
+            Team::from_slice(&["A", "B", "C"]),
+            Team::from_slice(&["1", "2", "3"]),
+        ]);
+        assert_eq!(r1.similarity(&r2), 1.0);
+        assert_eq!(r2.similarity(&r1), 1.0);
+    }
+    #[test]
+    fn round_with_many_teams_similarity_same_ordering_should_not_matter() {
+        let r1 = Round::from_slice(&[
+            Team::from_slice(&["1", "2", "3"]),
+            Team::from_slice(&["A", "B", "C"]),
         ]);
         let r2 = Round::from_slice(&[
             Team::from_slice(&["A", "B", "C"]),
