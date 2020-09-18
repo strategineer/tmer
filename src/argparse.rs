@@ -1,4 +1,4 @@
-use clap::{ArgMatches};
+use clap::ArgMatches;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -16,11 +16,13 @@ impl TmerArgs {
     pub fn new(matches: ArgMatches) -> TmerArgs {
         let n_rounds: usize = match matches.value_of("n_rounds") {
             Some(s) => s.parse::<usize>().expect("Size parameter must be a number"),
-            None => 1
+            None => 1,
         };
         let (n_players, elements): (usize, Vec<String>) = match matches.value_of("n_players") {
             Some(s) => {
-                let n = s.parse::<usize>().expect("n_players parameter must be a number");
+                let n = s
+                    .parse::<usize>()
+                    .expect("n_players parameter must be a number");
                 (n, (1..n + 1).map(|x| x.to_string()).collect())
             }
             None => {
@@ -52,15 +54,13 @@ impl TmerArgs {
             }
         };
         let (n_teams, team_size): (usize, usize) = match matches.value_of("n_teams") {
-            None => {
-                match matches.value_of("n_size") {
-                    None => panic!("Either the -t or -s parameters must be set"),
-                    Some(s) => {
-                        let n = s.parse::<usize>().expect("Size parameter must be a number");
-                        (n_players / n, n)
-                    }
+            None => match matches.value_of("n_size") {
+                None => panic!("Either the -t or -s parameters must be set"),
+                Some(s) => {
+                    let n = s.parse::<usize>().expect("Size parameter must be a number");
+                    (n_players / n, n)
                 }
-            }
+            },
             Some(s) => {
                 let n = s.parse::<usize>().expect("Team parameter must be a number");
                 (n, n_players / n)

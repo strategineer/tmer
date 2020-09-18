@@ -1,5 +1,5 @@
-use std::fmt;
 use std::collections::HashSet;
+use std::fmt;
 
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 struct Player {
@@ -24,17 +24,17 @@ impl Team {
         }
     }
     pub fn add_player(&mut self, m: String) {
-        self.players.insert(Player{ name: m });
+        self.players.insert(Player { name: m });
     }
     pub fn similarity(&self, other: &Team) -> f32 {
-        /* 
+        /*
          * Returns a value from 0.0 to 1.0 where 1.0 means both teams are the
          * same and 0.0 that they have nothing in common.
          *
          * Function is symmetric
          * */
         if self.players.len() != other.players.len() {
-            return 0.0
+            return 0.0;
         }
         let mut n = 0.0;
         let mut a_diff = 0.0;
@@ -51,7 +51,7 @@ impl Team {
                 b_diff += 1.0;
             }
         }
-        return 1.0 - (f32::from(a_diff/b_diff) / f32::from(n));
+        return 1.0 - (f32::from(a_diff / b_diff) / f32::from(n));
     }
 }
 
@@ -86,14 +86,14 @@ impl Round {
         self.teams.push(t);
     }
     pub fn similarity(&self, other: &Round) -> f32 {
-        /* 
+        /*
          * Returns a value from 0.0 to 1.0 where 1.0 means both rounds are the
          * same and 0.0 that they have nothing in common.
          *
          * Function is symmetric
          * */
         if self.teams.len() != other.teams.len() {
-            return 0.0
+            return 0.0;
         }
         let mut n = 0.0;
         let mut sum = 0.0;
@@ -101,7 +101,11 @@ impl Round {
         // account)
         for i in 0..self.teams.len() {
             n += 1.0;
-            sum += self.teams.get(i).unwrap().similarity(other.teams.get(i).unwrap());
+            sum += self
+                .teams
+                .get(i)
+                .unwrap()
+                .similarity(other.teams.get(i).unwrap());
         }
         return sum / n;
     }

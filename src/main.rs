@@ -1,17 +1,17 @@
 extern crate clap;
 use clap::{App, Arg};
-use log::{info};
+use log::info;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
 mod core;
-use self::core::{Team, Round};
+use self::core::{Round, Team};
 mod argparse;
-use self::argparse::{TmerArgs};
+use self::argparse::TmerArgs;
 
 const ATTEMPT_LIMIT: usize = 100;
 
-fn generate_teams(n_players: usize, n_teams: usize, team_size: usize, ids: &[String]) -> Round {
+fn generate_round(n_players: usize, n_teams: usize, team_size: usize, ids: &[String]) -> Round {
     let mut round: Round = Round::new();
     let mut start_index: usize;
     let mut end_index: usize = 0;
@@ -127,7 +127,7 @@ fn run_app() -> Result<(), ()> {
             info!("shuffled: {:?}", ids);
             // TODO(strategineer): implement different round generation strategies (simple, then
             // similarity-using one) and allow user to select the strategy through the CLI
-            let round = generate_teams(args.n_players, args.n_teams, args.team_size, &ids);
+            let round = generate_round(args.n_players, args.n_teams, args.team_size, &ids);
             match &previous_round {
                 None => {
                     best_round_yet = Some(round);
@@ -139,14 +139,13 @@ fn run_app() -> Result<(), ()> {
                         None => {
                             best_similarity = current_similarity;
                             best_round_yet = Some(round);
-                        },
+                        }
                         Some(_) => {
                             if current_similarity < best_similarity {
                                 best_similarity = current_similarity;
                                 best_round_yet = Some(round);
                             }
                         }
-
                     }
                 }
             }
@@ -159,7 +158,7 @@ fn run_app() -> Result<(), ()> {
         // TODO(strategineer): write tests for this similarity code to start and then add more
         // tests
         info!("similarity: {}", best_similarity);
-        println!("{}", best_round);
+        println!("{}\n", best_round);
         previous_round = Some(best_round);
     }
 
