@@ -126,7 +126,7 @@ fn run_app() -> Result<(), ()> {
             ids.shuffle(&mut thread_rng());
             info!("shuffled: {:?}", ids);
             // TODO(strategineer): implement different round generation strategies (simple, then
-            // similarity-using one) and allow user to select the strategy through the CLI
+            // similarity-using one (default?) and similarity using one that checks all previous rounds) and allow user to select the strategy through the CLI
             let round = generate_round(args.n_players, args.n_teams, args.team_size, &ids);
             match &previous_round {
                 None => {
