@@ -21,7 +21,7 @@ fn generate_round(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
         end_index = t * team_size + team_size;
         info!("{}:{}", start_index, end_index);
         for i in start_index..end_index {
-            team.add_player(ids.get(i).unwrap().to_string());
+            team.add_player(ids.get(i).unwrap());
         }
         round.add_team(team);
     }
@@ -29,7 +29,7 @@ fn generate_round(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
         //TODO(strategineer): identify as the "leftover" team?
         let mut team: Team = Team::new();
         for i in end_index..n_players {
-            team.add_player(ids.get(i).unwrap().to_string());
+            team.add_player(ids.get(i).unwrap());
         }
         round.add_team(team);
     }

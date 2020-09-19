@@ -5,6 +5,13 @@ use std::fmt;
 struct Player {
     name: String,
 }
+impl Player {
+    pub fn from(name: &str) -> Player {
+        Player {
+            name: name.to_string(),
+        }
+    }
+}
 
 impl fmt::Display for Player {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -24,18 +31,12 @@ impl Team {
         }
     }
     pub fn from(ls: &[&str]) -> Team {
-        let mut players: Vec<Player> = ls
-            .iter()
-            .cloned()
-            .map(|p| Player {
-                name: p.to_string(),
-            })
-            .collect();
+        let mut players: Vec<Player> = ls.iter().cloned().map(|p| Player::from(p)).collect();
         players.sort();
         Team { players }
     }
-    pub fn add_player(&mut self, m: String) {
-        self.players.push(Player { name: m });
+    pub fn add_player(&mut self, m: &str) {
+        self.players.push(Player::from(m));
         self.players.sort();
     }
     pub fn similarity(&self, other: &Self) -> f32 {
@@ -130,8 +131,6 @@ impl Round {
         }
         let mut n = 0.0;
         let mut sum = 0.0;
-        // TODO(strategineer): figure out way to take ordering into account (or not take it into
-        // account)
         for i in 0..self.teams.len() {
             n += 1.0;
             sum += self
@@ -165,100 +164,125 @@ impl fmt::Display for Round {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn round_similarity_same() {
-        let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
-        let r2 = Round::from(&[Team::from(&["A", "B", "C"])]);
-        assert_eq!(r1.similarity(&r2), 1.0);
-        assert_eq!(r2.similarity(&r1), 1.0);
+    mod round {
+        use super::*;
+        mod similarity {
+            use super::*;
+            #[test]
+            fn same() {
+                let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
+                let r2 = Round::from(&[Team::from(&["A", "B", "C"])]);
+                assert_eq!(r1.similarity(&r2), 1.0);
+                assert_eq!(r2.similarity(&r1), 1.0);
+            }
+            #[test]
+            fn different() {
+                let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
+                let r2 = Round::from(&[Team::from(&["D", "E", "F"])]);
+                assert_eq!(r1.similarity(&r2), 0.0);
+                assert_eq!(r2.similarity(&r1), 0.0);
+            }
+            #[test]
+            fn different_by_one() {
+                let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
+                let r2 = Round::from(&[Team::from(&["A", "B", "F"])]);
+                assert_eq!(r1.similarity(&r2), 0.6666666);
+                assert_eq!(r2.similarity(&r1), 0.6666666);
+            }
+            #[test]
+            fn different_by_two() {
+                let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
+                let r2 = Round::from(&[Team::from(&["A", "E", "F"])]);
+                assert_eq!(r1.similarity(&r2), 0.3333333);
+                assert_eq!(r2.similarity(&r1), 0.3333333);
+            }
+            #[test]
+            fn same_with_many_teams() {
+                let r1 = Round::from(&[Team::from(&["A", "B", "C"]), Team::from(&["1", "2", "3"])]);
+                let r2 = Round::from(&[Team::from(&["A", "B", "C"]), Team::from(&["1", "2", "3"])]);
+                assert_eq!(r1.similarity(&r2), 1.0);
+                assert_eq!(r2.similarity(&r1), 1.0);
+            }
+            #[test]
+            fn same_with_many_teams_order_should_not_matter() {
+                let r1 = Round::from(&[Team::from(&["1", "2", "3"]), Team::from(&["A", "B", "C"])]);
+                let r2 = Round::from(&[Team::from(&["A", "B", "C"]), Team::from(&["1", "2", "3"])]);
+                assert_eq!(r1.similarity(&r2), 1.0);
+                assert_eq!(r2.similarity(&r1), 1.0);
+            }
+        }
     }
-    #[test]
-    fn round_similarity_different() {
-        let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
-        let r2 = Round::from(&[Team::from(&["D", "E", "F"])]);
-        assert_eq!(r1.similarity(&r2), 0.0);
-        assert_eq!(r2.similarity(&r1), 0.0);
-    }
-    #[test]
-    fn round_similarity_different_by_one() {
-        let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
-        let r2 = Round::from(&[Team::from(&["A", "B", "F"])]);
-        assert_eq!(r1.similarity(&r2), 0.6666666);
-        assert_eq!(r2.similarity(&r1), 0.6666666);
-    }
-    #[test]
-    fn round_similarity_different_by_two() {
-        let r1 = Round::from(&[Team::from(&["A", "B", "C"])]);
-        let r2 = Round::from(&[Team::from(&["A", "E", "F"])]);
-        assert_eq!(r1.similarity(&r2), 0.3333333);
-        assert_eq!(r2.similarity(&r1), 0.3333333);
-    }
-    #[test]
-    fn round_with_many_teams_similarity_same() {
-        let r1 = Round::from(&[
-            Team::from(&["A", "B", "C"]),
-            Team::from(&["1", "2", "3"]),
-        ]);
-        let r2 = Round::from(&[
-            Team::from(&["A", "B", "C"]),
-            Team::from(&["1", "2", "3"]),
-        ]);
-        assert_eq!(r1.similarity(&r2), 1.0);
-        assert_eq!(r2.similarity(&r1), 1.0);
-    }
-    #[test]
-    fn round_with_many_teams_similarity_same_ordering_should_not_matter() {
-        let r1 = Round::from(&[
-            Team::from(&["1", "2", "3"]),
-            Team::from(&["A", "B", "C"]),
-        ]);
-        let r2 = Round::from(&[
-            Team::from(&["A", "B", "C"]),
-            Team::from(&["1", "2", "3"]),
-        ]);
-        assert_eq!(r1.similarity(&r2), 1.0);
-        assert_eq!(r2.similarity(&r1), 1.0);
-    }
-    #[test]
-    fn team_similarity_size() {
-        let t1 = Team::from(&["A"]);
-        let t2 = Team::from(&["A", "B", "C"]);
-        assert_eq!(t1.similarity(&t2), 0.0);
-        assert_eq!(t2.similarity(&t1), 0.0);
-    }
-    #[test]
-    fn team_similarity_same() {
-        let t1 = Team::from(&["A", "B", "C"]);
-        let t2 = Team::from(&["A", "B", "C"]);
-        assert_eq!(t1.similarity(&t2), 1.0);
-        assert_eq!(t2.similarity(&t1), 1.0);
-    }
-    #[test]
-    fn team_similarity_same_changed_order() {
-        let t1 = Team::from(&["A", "B", "C"]);
-        let t2 = Team::from(&["C", "A", "B"]);
-        assert_eq!(t1.similarity(&t2), 1.0);
-        assert_eq!(t2.similarity(&t1), 1.0);
-    }
-    #[test]
-    fn team_similarity_different() {
-        let t1 = Team::from(&["A", "B", "C"]);
-        let t2 = Team::from(&["D", "E", "F"]);
-        assert_eq!(t1.similarity(&t2), 0.0);
-        assert_eq!(t2.similarity(&t1), 0.0);
-    }
-    #[test]
-    fn team_similarity_different_by_one() {
-        let t1 = Team::from(&["A", "B", "C"]);
-        let t2 = Team::from(&["A", "B", "F"]);
-        assert_eq!(t1.similarity(&t2), 0.6666666);
-        assert_eq!(t2.similarity(&t1), 0.6666666);
-    }
-    #[test]
-    fn team_similarity_different_by_two() {
-        let t1 = Team::from(&["A", "B", "C"]);
-        let t2 = Team::from(&["A", "E", "F"]);
-        assert_eq!(t1.similarity(&t2), 0.3333333);
-        assert_eq!(t2.similarity(&t1), 0.3333333);
+    mod team {
+        use super::*;
+        mod similarity {
+            use super::*;
+            #[test]
+            fn different_size_is_zero() {
+                let t1 = Team::from(&["A"]);
+                let t2 = Team::from(&["A", "B", "C"]);
+                assert_eq!(t1.similarity(&t2), 0.0);
+                assert_eq!(t2.similarity(&t1), 0.0);
+            }
+            #[test]
+            fn same_is_one() {
+                let t1 = Team::from(&["A", "B", "C"]);
+                let t2 = Team::from(&["A", "B", "C"]);
+                assert_eq!(t1.similarity(&t2), 1.0);
+                assert_eq!(t2.similarity(&t1), 1.0);
+            }
+            #[test]
+            fn same_with_different_order_is_one() {
+                let t1 = Team::from(&["A", "B", "C"]);
+                let t2 = Team::from(&["C", "A", "B"]);
+                assert_eq!(t1.similarity(&t2), 1.0);
+                assert_eq!(t2.similarity(&t1), 1.0);
+            }
+            #[test]
+            fn completely_different_is_zero() {
+                let t1 = Team::from(&["A", "B", "C"]);
+                let t2 = Team::from(&["D", "E", "F"]);
+                assert_eq!(t1.similarity(&t2), 0.0);
+                assert_eq!(t2.similarity(&t1), 0.0);
+            }
+            #[test]
+            fn different_by_one_player_is_two_thirds() {
+                let t1 = Team::from(&["A", "B", "C"]);
+                let t2 = Team::from(&["A", "B", "F"]);
+                assert_eq!(t1.similarity(&t2), 0.6666666);
+                assert_eq!(t2.similarity(&t1), 0.6666666);
+            }
+            #[test]
+            fn different_by_two_players_is_one_third() {
+                let t1 = Team::from(&["A", "B", "C"]);
+                let t2 = Team::from(&["A", "E", "F"]);
+                assert_eq!(t1.similarity(&t2), 0.3333333);
+                assert_eq!(t2.similarity(&t1), 0.3333333);
+            }
+        }
+        mod add_player {
+            use super::*;
+            #[test]
+            fn handle_a_new_team() {
+                let t1 = Team::new();
+                assert_eq!(t1.players, []);
+            }
+            #[test]
+            fn keep_list_of_players_sorted() {
+                let mut t1 = Team::from(&["B"]);
+                t1.add_player("A");
+                assert_eq!(t1.players, [Player::from("A"), Player::from("B")]);
+            }
+        }
+        mod from {
+            use super::*;
+            #[test]
+            fn keep_list_of_players_sorted() {
+                let t1 = Team::from(&["C", "B", "A"]);
+                assert_eq!(
+                    t1.players,
+                    [Player::from("A"), Player::from("B"), Player::from("C")]
+                );
+            }
+        }
     }
 }
