@@ -135,12 +135,11 @@ fn run_app() -> Result<(), ()> {
                 }
                 _ => {
                     let mut current_similarity_sum = 0.0;
-                    let mut n = 0.0;
                     for r in previous_rounds.iter() {
                         current_similarity_sum += r.similarity(&round);
-                        n += 1.0;
                     }
-                    current_similarity_sum = current_similarity_sum / n;
+                    current_similarity_sum =
+                        current_similarity_sum / (previous_rounds.len() as f32);
                     match best_round_yet {
                         None => {
                             best_similarity = current_similarity_sum;

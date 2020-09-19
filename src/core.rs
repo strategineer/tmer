@@ -49,22 +49,20 @@ impl Team {
         if self.players.len() != other.players.len() {
             return 0.0;
         }
-        let mut n = 0.0;
         let mut a_diff = 0.0;
         let mut b_diff = 0.0;
         for i in &self.players {
-            n += 1.0;
             if !other.players.contains(i) {
                 a_diff += 1.0;
             }
         }
         for i in &other.players {
-            n += 1.0;
             if !self.players.contains(i) {
                 b_diff += 1.0;
             }
         }
-        return 1.0 - (f32::from(a_diff + b_diff) / f32::from(n));
+        return 1.0
+            - (f32::from(a_diff + b_diff) / (self.players.len() + other.players.len()) as f32);
     }
 }
 
