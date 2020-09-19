@@ -117,7 +117,7 @@ fn run_app() -> Result<(), ()> {
         panic!("Team size must be smaller than the number of players")
     }
 
-    let mut previous_round: Option<Round> = None;
+    let mut previous_rounds: Vec<Round> = Vec::new();
     for _ in 0..args.n_rounds {
         let mut best_similarity = f32::MAX;
         let mut attempts = 0;
@@ -128,21 +128,27 @@ fn run_app() -> Result<(), ()> {
             // TODO(strategineer): implement different round generation strategies (simple, then
             // similarity-using one (default?) and similarity using one that checks all previous rounds) and allow user to select the strategy through the CLI
             let round = generate_round(args.n_players, args.n_teams, args.team_size, &ids);
-            match &previous_round {
-                None => {
+            match previous_rounds.len() {
+                0 => {
                     best_round_yet = Some(round);
                     break;
                 }
-                Some(r) => {
-                    let current_similarity = r.similarity(&round);
+                _ => {
+                    let mut current_similarity_sum = 0.0;
+                    let mut n = 0.0;
+                    for r in previous_rounds.iter() {
+                        current_similarity_sum += r.similarity(&round);
+                        n += 1.0;
+                    }
+                    current_similarity_sum = current_similarity_sum / n;
                     match best_round_yet {
                         None => {
-                            best_similarity = current_similarity;
+                            best_similarity = current_similarity_sum;
                             best_round_yet = Some(round);
                         }
                         Some(_) => {
-                            if current_similarity < best_similarity {
-                                best_similarity = current_similarity;
+                            if current_similarity_sum < best_similarity {
+                                best_similarity = current_similarity_sum;
                                 best_round_yet = Some(round);
                             }
                         }
@@ -155,11 +161,9 @@ fn run_app() -> Result<(), ()> {
             }
         }
         let best_round = best_round_yet.unwrap();
-        // TODO(strategineer): write tests for this similarity code to start and then add more
-        // tests
         info!("similarity: {}", best_similarity);
         println!("{}\n", best_round);
-        previous_round = Some(best_round);
+        previous_rounds.push(best_round.clone());
     }
 
     Ok(())
