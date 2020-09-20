@@ -48,6 +48,11 @@ impl Team {
          * */
         if self.players.len() != other.players.len() {
             return 0.0;
+        } else if self.players.len() == 0 {
+            if other.players.len() == 0 {
+                return 1.0;
+            }
+            return 0.0;
         }
         let mut a_diff = 0.0;
         let mut b_diff = 0.0;
@@ -61,8 +66,7 @@ impl Team {
                 b_diff += 1.0;
             }
         }
-        return 1.0
-            - (f32::from(a_diff + b_diff) / (self.players.len() + other.players.len()) as f32);
+        1.0 - f32::from(a_diff + b_diff) / ((self.players.len() * 2) as f32)
     }
 }
 
@@ -214,6 +218,20 @@ mod tests {
         use super::*;
         mod similarity {
             use super::*;
+            #[test]
+            fn no_elements_in_one_but_not_the_other_is_zero() {
+                let t1 = Team::from(&[]);
+                let t2 = Team::from(&["A", "B", "C"]);
+                assert_eq!(t1.similarity(&t2), 0.0);
+                assert_eq!(t2.similarity(&t1), 0.0);
+            }
+            #[test]
+            fn no_elements_in_one_and_the_other_is_one() {
+                let t1 = Team::from(&[]);
+                let t2 = Team::from(&[]);
+                assert_eq!(t1.similarity(&t2), 1.0);
+                assert_eq!(t2.similarity(&t1), 1.0);
+            }
             #[test]
             fn different_size_is_zero() {
                 let t1 = Team::from(&["A"]);

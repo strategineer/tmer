@@ -9,7 +9,7 @@ use self::core::{Round, Team};
 mod argparse;
 use self::argparse::TmerArgs;
 
-const ATTEMPT_LIMIT: usize = 100;
+const ATTEMPT_LIMIT: usize = 100000;
 
 fn generate_round(n_players: usize, n_teams: usize, team_size: usize, ids: &[String]) -> Round {
     let mut round: Round = Round::new();
@@ -25,7 +25,7 @@ fn generate_round(n_players: usize, n_teams: usize, team_size: usize, ids: &[Str
         }
         round.add_team(team);
     }
-    if end_index <= n_players {
+    if end_index < n_players {
         //TODO(strategineer): identify as the "leftover" team?
         let mut team: Team = Team::new();
         for i in end_index..n_players {
@@ -79,7 +79,7 @@ fn run_app() -> Result<(), ()> {
         )
         .arg(
             Arg::with_name("n_rounds")
-                .help("Number of rounds to generate.")
+                .help("Maximum number of rounds to generate. Algorithm will stop early if it detects a cycle.")
                 .short("r")
                 .long("rounds")
                 .value_name("NUMBER_OF_ROUNDS")
@@ -120,9 +120,8 @@ fn run_app() -> Result<(), ()> {
     let mut previous_rounds: Vec<Round> = Vec::new();
     for _ in 0..args.n_rounds {
         let mut best_similarity = f32::MAX;
-        let mut attempts = 0;
         let mut best_round_yet: Option<Round> = None;
-        loop {
+        for _ in 0..ATTEMPT_LIMIT {
             ids.shuffle(&mut thread_rng());
             info!("shuffled: {:?}", ids);
             // TODO(strategineer): implement different round generation strategies (simple, then
@@ -133,34 +132,38 @@ fn run_app() -> Result<(), ()> {
                     best_round_yet = Some(round);
                     break;
                 }
-                _ => {
+                n => {
+                    // TODO(strategineer): I'm convinced that the similarity/sorting computation
+                    // has edge cases which are causing problems (analyze the case where 2 teams of
+                    // 2 with 1 player leftover, pairs seem like they can repeat
+                    // TODO(strategineer): use a weighted average where more recent rounds are more
+                    // important
                     let mut current_similarity_sum = 0.0;
-                    for r in previous_rounds.iter() {
+                    for r in &previous_rounds {
                         current_similarity_sum += r.similarity(&round);
                     }
-                    current_similarity_sum =
-                        current_similarity_sum / (previous_rounds.len() as f32);
+                    let current_similarity_avg = current_similarity_sum / (n as f32);
                     match best_round_yet {
                         None => {
-                            best_similarity = current_similarity_sum;
+                            best_similarity = current_similarity_avg;
                             best_round_yet = Some(round);
                         }
                         Some(_) => {
-                            if current_similarity_sum < best_similarity {
-                                best_similarity = current_similarity_sum;
+                            if current_similarity_avg < best_similarity {
+                                best_similarity = current_similarity_avg;
                                 best_round_yet = Some(round);
                             }
                         }
                     }
                 }
             }
-            attempts += 1;
-            if attempts > ATTEMPT_LIMIT || best_similarity > 0.999 {
-                break;
-            }
         }
         let best_round = best_round_yet.unwrap();
-        info!("similarity: {}", best_similarity);
+        if previous_rounds.contains(&best_round) {
+            info!("We have a cycle, let's stop");
+            break;
+        }
+        println!("similarity: {}", best_similarity);
         println!("{}\n", best_round);
         previous_rounds.push(best_round.clone());
     }
